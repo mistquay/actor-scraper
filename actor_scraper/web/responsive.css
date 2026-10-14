@@ -1,8 +1,8 @@
 @media(min-width:1600px) {
   #content {
-  padding:44px 55px}
+  padding:28px 36px}
 .topbar {
-  padding:0 55px}
+  padding:0 36px}
 }
 @media(max-width:1150px) {
   #content {
@@ -13,19 +13,9 @@
   width:196px}
 main {
   margin-left:196px}
-.stats-grid {
-  gap:10px}
-.stat {
-  padding:18px}
-.stat strong {
-  font-size:24px}
 .dashboard-grid {
   grid-template-columns:1.4fr 1fr;
   gap:16px}
-.source-card {
-  padding:24px 20px}
-.source-card h2 {
-  font-size:23px}
 .panel {
   padding:22px}
 .form-grid.three {
@@ -36,10 +26,6 @@ main {
 @media(max-width:860px) {
   .dashboard-grid {
   grid-template-columns:1fr}
-.source-card {
-  display:none}
-.stats-grid {
-  grid-template-columns:1fr 1fr}
 .sidebar {
   width:170px;
   padding:28px 13px}
@@ -51,15 +37,14 @@ main {
 .brand-mark {
   width:31px;
   height:31px;
-  font-size:27px}
+  font-size:25px}
 main {
   margin-left:170px}
 .page-heading {
   align-items:flex-start}
 .page-heading h1 {
-  font-size:27px}
-.topbar-note {
-  display:none}
+  font-size:25px}
+
 .login-screen {
   grid-template-columns:1fr}
 .login-art {
@@ -107,19 +92,11 @@ main {
 .page-heading p.muted {
   font-size:11px}
 .page-heading h1 {
-  font-size:26px}
+  font-size:24px}
 .form-grid,.form-grid.three {
   grid-template-columns:1fr}
 .check-grid {
   grid-template-columns:1fr}
-.stats-grid {
-  gap:10px}
-.stat {
-  padding:17px}
-.stat strong {
-  font-size:24px}
-.stat small {
-  font-size:9px}
 .panel {
   padding:20px}
 .action-group {

@@ -3,9 +3,10 @@
 import json
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Literal
 from urllib.parse import urlsplit
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -128,8 +129,22 @@ def create_app(data_dir=None, *, password=None, runner=None):
             client.close()
 
     @app.get("/api/jobs", dependencies=[Depends(require)])
-    def list_jobs():
-        return {"items": store.list_jobs()}
+    def list_jobs(
+        offset: int = 0, limit: int = 50, q: str = Query(default="", max_length=200),
+        state: Literal["", "active", "queued", "running", "cancelling", "completed", "failed", "cancelled", "interrupted"] = "",
+        mode: Literal["", "preview", "apply"] = "",
+        created_after: float | None = Query(default=None, ge=0, allow_inf_nan=False),
+        created_before: float | None = Query(default=None, ge=0, allow_inf_nan=False),
+        sort: Literal["newest", "oldest"] = "newest",
+    ):
+        if offset < 0 or not 1 <= limit <= 200:
+            raise HTTPException(400, "分页参数不正确")
+        if created_after is not None and created_before is not None and created_after >= created_before:
+            raise HTTPException(400, "开始日期不能晚于结束日期")
+        return store.query_jobs(
+            offset=offset, limit=limit, q=q, state=state, mode=mode,
+            created_after=created_after, created_before=created_before, sort=sort,
+        )
 
     @app.post("/api/jobs", dependencies=[Depends(require)], status_code=201)
     def start_job(body: JobRequest):
@@ -160,17 +175,20 @@ def create_app(data_dir=None, *, password=None, runner=None):
             raise HTTPException(409, str(exc)) from exc
 
     @app.get("/api/jobs/{job_id}/results", dependencies=[Depends(require)])
-    def results(job_id: int, offset: int = 0, limit: int = 50):
+    def results(
+        job_id: int, offset: int = 0, limit: int = 50, q: str = Query(default="", max_length=200),
+        status: Literal["", "issues", "preview", "updated", "unchanged", "not_found", "partial", "error", "cancelled"] = "",
+    ):
         if offset < 0 or not 1 <= limit <= 200:
             raise HTTPException(400, "分页参数不正确")
         job_or_404(job_id)
-        rows = store.results(job_id, offset, limit)
-        for row in rows:
+        data = store.query_results(job_id, offset=offset, limit=limit, q=q, status=status)
+        for row in data["items"]:
             for kind, key in [("primary", "image_path"), ("backdrop", "backdrop_path")]:
                 path = row.pop(key, "")
                 if path:
                     row[kind + "_preview"] = f"/api/jobs/{job_id}/results/{row['result_id']}/image?kind={kind}"
-        return {"items": rows}
+        return data
 
     @app.get("/api/jobs/{job_id}/results/{result_id}/image", dependencies=[Depends(require)])
     def image(job_id: int, result_id: int, kind: str = "primary"):

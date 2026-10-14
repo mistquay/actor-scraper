@@ -5,7 +5,7 @@
   width:226px;
   background:#fff;
   border-right:1px solid var(--line);
-  padding:34px 20px 22px;
+  padding:24px 18px;
   display:flex;
   flex-direction:column;
   position:fixed;
@@ -14,7 +14,7 @@
   display:flex;
   align-items:center;
   gap:12px;
-  margin-bottom:44px;
+  margin-bottom:30px;
   padding-left:6px;
   font-size:15px;
   font-weight:700;
@@ -45,7 +45,7 @@
 .sidebar nav a {
   padding:12px 15px;
   border-radius:9px;
-  color:#7a8d82;
+  color:#60776a;
   font-size:13px;
   display:flex;
   gap:13px;
@@ -84,7 +84,8 @@
   margin:14px 0}
 .sidebar-foot button {
   padding:0;
-  font-size:11px}
+  font-size:12px;
+  margin-top:18px}
 .sidebar-foot>small {
   font-size:10px;
   margin-top:20px;
@@ -94,12 +95,12 @@ main {
   flex:1;
   min-width:0}
 .topbar {
-  height:70px;
+  height:52px;
   border-bottom:1px solid var(--line);
   display:flex;
   align-items:center;
   justify-content:space-between;
-  padding:0 42px;
+  padding:0 30px;
   background:#f8faf6;
   font-size:12px;
   color:#7b8d83}
@@ -110,16 +111,16 @@ main {
 #content {
   max-width:1420px;
   margin:auto;
-  padding:40px 42px}
+  padding:28px 30px}
 .page-heading {
   display:flex;
   align-items:center;
   justify-content:space-between;
   gap:25px;
-  margin-bottom:31px}
+  margin-bottom:24px}
 .page-heading p.muted {
-  margin-top:12px;
-  font-size:12px}
+  margin-top:8px;
+  font-size:13px}
 .page-heading h1 .badge {
   vertical-align:middle;
   margin-left:8px;
@@ -131,5 +132,5 @@ main {
 .panel {
   background:var(--paper);
   border:1px solid var(--line);
-  border-radius:13px;
-  padding:26px}
+  border-radius:10px;
+  padding:22px}

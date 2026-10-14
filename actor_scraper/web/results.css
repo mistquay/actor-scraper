@@ -35,13 +35,13 @@
 .pagination {
   display:flex;
   align-items:center;
-  justify-content:flex-end;
+  justify-content:space-between;
   gap:18px;
   border-top:1px solid #edf1e9;
   padding-top:18px;
   margin-top:12px;
   font-size:10px;
-  color:#94a493}
+  color:var(--muted)}
 .pagination .secondary {
   padding:7px 12px;
   font-size:10px}

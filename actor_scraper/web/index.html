@@ -17,9 +17,9 @@
   <div id="app" class="app-shell" hidden>
     <aside class="sidebar"><a class="brand" href="#dashboard"><span class="brand-mark">a<span>·</span></span><span>Actor Scraper<small>演员资料管理</small></span></a>
       <nav><a href="#dashboard" data-nav="dashboard"><span>◈</span>工作台</a><a href="#history" data-nav="history"><span>◷</span>任务记录</a><a href="#settings" data-nav="settings"><span>⚙</span>连接与配置</a></nav>
-      <div class="sidebar-foot"><div class="connection"><i></i><span id="connection-state">尚未配置 FYMS</span></div><p>结果自动保存<br>图片缓存重复利用</p><button id="logout" class="link-button">退出登录 ↗</button><small>v0.3.0</small></div>
+      <div class="sidebar-foot"><a class="connection" href="#settings"><i></i><span id="connection-state">尚未配置 FYMS</span></a><button id="logout" class="link-button">退出登录</button></div>
     </aside>
-    <main><header class="topbar"><span id="breadcrumb">工作台</span><span class="topbar-note">FYMS / Emby compatible</span></header><div id="content"></div></main>
+    <main><header class="topbar"><span id="breadcrumb">工作台</span></header><div id="content"></div></main>
   </div>
   <div id="toast" class="toast" role="status" hidden></div>
   <dialog id="result-dialog"><div class="dialog-head"><h2 id="result-title">演员资料</h2><button id="close-result" class="icon-button" aria-label="关闭">×</button></div><div id="result-content"></div></dialog>

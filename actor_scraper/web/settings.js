@@ -6,7 +6,7 @@ const check = (key, label, hint) => `<label class="check"><input name="${key}" t
 export async function renderSettings(root, onSaved, current = () => true) {
   const settings = await api('/settings');
   if (!current()) return;
-  root.innerHTML = `<div class="page-heading"><div><p class="eyebrow">PREFERENCES</p><h1>连接与配置</h1><p class="muted">保存一次，后续任务直接使用。运行中的任务保留启动时的配置。</p></div><button id="save-settings" class="primary" type="submit" form="settings-form">保存配置</button></div>
+  root.innerHTML = `<div class="page-heading"><div><h1>连接与配置</h1><p class="muted">运行中的任务保留启动时的配置。</p></div><button id="save-settings" class="primary" type="submit" form="settings-form">保存配置</button></div>
   <form id="settings-form" class="settings-grid">
     <section class="panel"><div class="section-title"><span class="step">01</span><div><h2>连接媒体服务器</h2><p>通过兼容 Emby 的接口更新现有演员。</p></div></div><div class="form-grid">
       ${input('server', 'FYMS / Emby 地址', '支持 /emby 和反代前缀，例如 https://media.example.com')}

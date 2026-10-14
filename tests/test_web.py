@@ -94,6 +94,79 @@ def test_results_database_and_manual_export(tmp_path):
         assert client.get(f"/api/jobs/{job_id}/results?offset=-1").status_code == 400
 
 
+def test_history_filters_cover_older_jobs_and_frozen_all_actor_scope(tmp_path):
+    with TestClient(create_app(tmp_path, password="test-password")) as client:
+        login(client)
+        store = client.app.state.store
+        ids = []
+        for index in range(65):
+            job_id = store.create_job(
+                {"names": ["早期演员" if index == 0 else f"演员{index}"], "all": False, "mode": "preview", "limit": None},
+                Settings().public(),
+            )
+            store.update_job(job_id, state="completed")
+            ids.append(job_id)
+        assert client.get("/api/jobs", params={"q": "早期演员"}).json()["items"][0]["id"] == ids[0]
+        page = client.get("/api/jobs", params={"limit": 25, "offset": 50}).json()
+        assert page["total"] == 65 and len(page["items"]) == 15
+        assert "scope" not in page["items"][0]
+        assert client.get("/api/jobs", params={"sort": "oldest", "limit": 1}).json()["items"][0]["id"] == ids[0]
+        assert client.get("/api/jobs", params={"q": f"#{ids[0]}"}).json()["total"] == 1
+
+        all_id = store.create_job({"names": [], "all": True, "mode": "apply", "limit": None}, Settings().public())
+        store.update_job(all_id, state="failed", scope=[{"Name": "冻结演员", "Id": "person-1"}])
+        filtered = client.get("/api/jobs", params={"q": "冻结", "mode": "apply", "state": "failed"}).json()
+        assert filtered["total"] == 1 and filtered["items"][0]["id"] == all_id
+        assert client.get("/api/jobs", params={"q": "冻结", "mode": "preview"}).json()["total"] == 0
+        # 搜索符号是字面文本，不应作为 SQL LIKE 通配符或 SQL 片段。
+        assert client.get("/api/jobs", params={"q": "%"}).json()["total"] == 0
+        assert client.get("/api/jobs", params={"q": "' OR 1=1 --"}).json()["total"] == 0
+        store.update_job(all_id, state="cancelling")
+        assert client.get("/api/jobs", params={"state": "active"}).json()["total"] == 1
+        assert client.get("/api/jobs", params={"state": "running"}).json()["total"] == 0
+
+
+def test_history_date_boundaries_and_query_validation(tmp_path):
+    with TestClient(create_app(tmp_path, password="test-password")) as client:
+        login(client)
+        store = client.app.state.store
+        ids = []
+        for timestamp in [300, 100, 200]:
+            job_id = store.create_job({"names": ["甲"], "all": False, "mode": "preview", "limit": None}, Settings().public())
+            store.update_job(job_id, state="completed")
+            with store.connect() as db:
+                db.execute("UPDATE jobs SET created_at=? WHERE id=?", (timestamp, job_id))
+            ids.append(job_id)
+        data = client.get("/api/jobs", params={"created_after": 100, "created_before": 300}).json()
+        assert data["total"] == 2 and [job["id"] for job in data["items"]] == [ids[2], ids[1]]
+        assert client.get("/api/jobs", params={"sort": "oldest", "limit": 1}).json()["items"][0]["id"] == ids[1]
+        for params in [{"offset": -1}, {"limit": 0}, {"limit": 201}, {"created_after": 300, "created_before": 100}]:
+            assert client.get("/api/jobs", params=params).status_code == 400
+        for params in [{"state": "unknown"}, {"mode": "unknown"}, {"sort": "id; DROP TABLE jobs"}, {"created_before": "nan"}]:
+            assert client.get("/api/jobs", params=params).status_code == 422
+
+
+def test_result_filtering_paginates_matches_and_keeps_export_complete(tmp_path):
+    with TestClient(create_app(tmp_path, password="test-password")) as client:
+        login(client)
+        store = client.app.state.store
+        job_id = store.create_job({"names": [], "all": True, "mode": "preview", "limit": None}, Settings().public())
+        for index in range(75):
+            store.add_result(job_id, report(f"演员{index}", "preview"))
+        for name, status in [("目标演员", "error"), ("另一位", "not_found"), ("第三位", "partial")]:
+            store.add_result(job_id, report(name, status, image_path="cached-image.jpg"))
+        url = f"/api/jobs/{job_id}/results"
+        data = client.get(url, params={"status": "issues", "limit": 2, "offset": 2}).json()
+        assert data["total"] == 3 and len(data["items"]) == 1
+        assert data["items"][0]["name"] == "第三位"
+        assert "image_path" not in data["items"][0] and "primary_preview" in data["items"][0]
+        target = client.get(url, params={"q": "目标", "status": "error"}).json()
+        assert target["total"] == 1 and target["items"][0]["name"] == "目标演员"
+        assert client.get(url, params={"q": "目标", "status": "preview"}).json()["total"] == 0
+        assert client.get(url, params={"status": "unknown"}).status_code == 422
+        assert len(client.get(f"/api/jobs/{job_id}/export").text.splitlines()) == 78
+
+
 def test_image_preview_cannot_read_config_or_arbitrary_files(tmp_path):
     app = create_app(tmp_path, password="test-password", runner=fast_runner)
     with TestClient(app) as client:

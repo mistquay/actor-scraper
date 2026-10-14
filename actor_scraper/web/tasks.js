@@ -1,120 +1,108 @@
-import { api, escapeHtml as e, toast, active, badge, dateTime } from './api.js';
+import { api, escapeHtml as e, toast, active, badge, dateTime, states } from './api.js';
+import { emptyState, pagination } from './tables.js';
 
-const pageOffsets = new Map();
-
-function taskPolicy(settings) {
-  const text = settings.images_only ? '文字资料保留' : settings.overwrite ? '文字资料更新已有字段' : '文字资料仅补缺';
-  if (settings.avatar_source === 'none') return `${text} · 不处理图片`;
-  const avatar = settings.replace_avatar ? '头像可替换已有图' : '头像仅补缺';
-  const backdrop = settings.no_backdrop ? '跳过背景' : settings.replace_backdrop ? '背景可替换已有图' : '背景仅补缺';
-  return `${text} · ${avatar} · ${backdrop}`;
-}
-
-export function jobTable(jobs) {
-  if (!jobs.length) return `<div class="empty"><span>◈</span><h3>还没有任务记录</h3><p>创建一个预览任务，先看看将获取哪些资料与图片。</p></div>`;
-  return `<div class="table-wrap"><table><thead><tr><th>任务 / 范围</th><th>模式</th><th>进度</th><th>状态</th><th>创建时间</th><th></th></tr></thead><tbody>${jobs.map(job => `<tr><td><a class="task-link" href="#task/${job.id}">#${job.id} ${job.request.all ? '全部演员' : e(job.request.names.slice(0, 2).join('、'))}${job.request.names.length > 2 ? ' 等' : ''}</a><small>${job.request.limit ? `最多 ${job.request.limit} 位` : '按选择范围处理'}</small></td><td>${job.request.mode === 'apply' ? '回写' : '预览'}</td><td><span class="tabular">${job.done} / ${job.total || '—'}</span></td><td>${badge(job.state)}</td><td class="muted">${dateTime(job.created_at)}</td><td><a class="row-arrow" href="#task/${job.id}">↗</a></td></tr>`).join('')}</tbody></table></div>`;
-}
-
-export async function renderDashboard(root, settings, current = () => true) {
-  const data = await api('/jobs');
-  if (!current()) return;
-  const jobs = data.items;
-  const running = jobs.find(active);
-  const done = jobs.filter(job => job.state === 'completed').length;
-  const recent = jobs[0];
-  root.innerHTML = `<div class="page-heading"><div><p class="eyebrow">YOUR LIBRARY, WELL KEPT</p><h1>演员资料工作台</h1><p class="muted">补全资料、选好图像。每次运行自动保存，随时查看与重试。</p></div><a class="secondary" href="#settings">管理配置 ↗</a></div>
-  <div class="stats-grid"><div class="stat"><span>任务状态</span><strong>${running ? '运行中' : '就绪'}</strong><small>${running ? `任务 #${running.id} · ${running.done}/${running.total || '—'}` : '可以创建新任务'}</small></div><div class="stat"><span>已完成任务</span><strong>${done}<em>次</em></strong><small>最近 ${jobs.length} 条记录</small></div><div class="stat"><span>最近缓存命中</span><strong>${recent?.summary?.cache_hits ?? '—'}<em>位</em></strong><small>命中时无需重新抓取档案</small></div><div class="stat accent"><span>默认图片来源</span><strong>${settings.avatar_source === 'auto' ? 'GRAPHIS' : e(settings.avatar_source.toUpperCase())}</strong><small>${settings.no_backdrop ? '只处理头像' : '主图 + 背景分别处理'}</small></div></div>
-  <div class="dashboard-grid"><section class="panel new-task"><div class="section-title"><span class="step">↗</span><div><h2>创建刮削任务</h2><p>默认预览，核对来源后再选择回写。</p></div></div>
-  <form id="job-form"><label>演员姓名<textarea name="names" rows="5" placeholder="每行一位演员，例如：&#10;三上悠亚&#10;桥本有菜"></textarea><small>支持简繁日文字形与已知艺名关联。</small></label><label class="check"><input name="all" type="checkbox"><span>处理媒体服务器全部演员<small>可设置数量上限，先运行少量样本。</small></span></label><div class="form-grid"><label>数量上限<input name="limit" type="number" min="1" placeholder="留空处理全部选择"></label><label>本次模式<select name="mode"><option value="preview">仅预览 · 获取资料与图片</option><option value="apply">执行回写 · 更新媒体服务器</option></select></label></div><div class="task-policy"><i></i><span>${taskPolicy(settings)}</span></div><button class="primary wide" type="submit" ${running ? 'disabled' : ''}>${running ? '等待当前任务结束' : '开始任务'} <span>→</span></button></form></section>
-  <section class="source-card"><p class="eyebrow">A MATCHED PAIR</p><h2>同一组写真，<br>完整的人物页面。</h2><div class="source-illustration"><div class="portrait-shape"><span>a.</span></div><div class="backdrop-shape"><span>GRAPHIS</span><i></i></div></div><div class="source-facts"><div><span>主图</span><strong>prof.jpg</strong></div><div><span>背景</span><strong>model.jpg</strong></div></div><p>优先 GRAPHIS 公开封面，两种图片独立补全。已有好图保留，缓存跨任务复用。</p><a href="#settings">调整来源与写真版本 <span>↗</span></a></section></div>
-  <section class="panel recent"><div class="panel-heading"><h2>最近任务</h2><a href="#history">查看全部 ↗</a></div><div id="recent-jobs">${jobTable(jobs.slice(0, 5))}</div></section>`;
-  const form = root.querySelector('#job-form');
-  let submitting = false;
-  form.elements.all.onchange = () => {
-    form.elements.names.disabled = form.elements.all.checked;
-    if (form.elements.all.checked && !form.elements.limit.value) form.elements.limit.value = 10;
-  };
-  form.onsubmit = async event => {
-    event.preventDefault();
-    const button = form.querySelector('button');
-    submitting = true;
-    button.disabled = true;
-    try {
-      const job = await api('/jobs', { method: 'POST', body: JSON.stringify({ names: form.elements.all.checked ? [] : form.elements.names.value.split(/\n/).map(n => n.trim()).filter(Boolean), all: form.elements.all.checked, limit: form.elements.limit.value ? Number(form.elements.limit.value) : null, mode: form.elements.mode.value }) });
-      location.hash = `task/${job.id}`;
-    } catch (error) { toast(error.message, true); button.disabled = false; }
-    finally { submitting = false; }
-  };
-  return async () => {
-    const { items } = await api('/jobs');
-    if (!current()) return;
-    const running = items.find(active);
-    const stats = root.querySelectorAll('.stat');
-    stats[0].querySelector('strong').textContent = running ? '运行中' : '就绪';
-    stats[0].querySelector('small').textContent = running ? `任务 #${running.id} · ${running.done}/${running.total || '—'}` : '可以创建新任务';
-    stats[1].querySelector('strong').innerHTML = `${items.filter(job => job.state === 'completed').length}<em>次</em>`;
-    stats[1].querySelector('small').textContent = `最近 ${items.length} 条记录`;
-    stats[2].querySelector('strong').innerHTML = `${items[0]?.summary?.cache_hits ?? '—'}<em>位</em>`;
-    const button = form.querySelector('button');
-    button.disabled = Boolean(running) || submitting;
-    button.innerHTML = `${running ? '等待当前任务结束' : '开始任务'} <span>→</span>`;
-    root.querySelector('#recent-jobs').innerHTML = jobTable(items.slice(0, 5));
-  };
-}
-
-export async function renderHistory(root, current = () => true) {
-  const data = await api('/jobs');
-  if (!current()) return;
-  root.innerHTML = `<div class="page-heading"><div><p class="eyebrow">ACTIVITY</p><h1>任务记录</h1><p class="muted">范围、来源、结果与耗时都在这里。重试保留原任务范围和处理策略。</p></div><a class="primary" href="#dashboard">新建任务 +</a></div><section class="panel">${jobTable(data.items)}</section>`;
-}
+const resultFilters = new Map();
 
 export async function renderTask(root, id, current = () => true) {
-  const job = await api(`/jobs/${id}`);
-  let offset = pageOffsets.get(id) || 0;
-  const data = await api(`/jobs/${id}/results?offset=${offset}`);
+  let job = await api(`/jobs/${id}`);
+  const filters = resultFilters.get(id) || { q: '', status: '', offset: 0 };
+  resultFilters.set(id, filters);
+  const resultQuery = () => new URLSearchParams({ offset: filters.offset, q: filters.q, status: filters.status });
+  const data = await api(`/jobs/${id}/results?${resultQuery()}`);
   if (!current()) return;
-  const statuses = job.summary?.statuses || {};
-  const percentage = job.total ? Math.round(job.done / job.total * 100) : 0;
-  root.innerHTML = `<div class="page-heading"><div><p class="eyebrow">TASK #${job.id}</p><h1>${job.request.mode === 'apply' ? '回写任务' : '预览任务'} ${badge(job.state)}</h1><p class="muted">${dateTime(job.created_at)} · ${job.request.all ? '全部演员' : e(job.request.names.join('、'))}</p></div><div class="action-group"><a class="secondary" href="/api/jobs/${id}/export">导出 JSONL ↓</a><button class="secondary" id="task-action">${active(job) ? '停止任务' : '重试未完成'}</button></div></div>
-  <section class="panel progress-panel"><div class="progress-head"><strong>${active(job) ? '任务正在进行' : '本次处理结果'}</strong><span>${job.done} / ${job.total || '—'} 位</span></div><div class="progress-track"><div style="width:${percentage}%"></div></div><p id="task-message" class="muted">${e(job.message || '正在准备任务')}</p><div class="metrics"><span>已更新 <b>${statuses.updated || 0}</b></span><span>已预览 <b>${statuses.preview || 0}</b></span><span>未匹配 <b>${statuses.not_found || 0}</b></span><span>失败 / 部分失败 <b>${(statuses.error || 0) + (statuses.partial || 0)}</b></span><span>源站请求 <b>${job.summary?.external_requests ?? '—'}</b></span><span>耗时 <b>${job.summary?.seconds !== undefined ? `${job.summary.seconds}s` : '—'}</b></span></div></section>
-  <section class="panel results"><div class="panel-heading"><h2>演员结果</h2><span class="muted">点击演员查看档案与两种图片</span></div><div id="results-table"></div><div class="pagination"><button class="secondary" id="previous-page" disabled>上一页</button><span id="page-number">第 1 页</span><button class="secondary" id="next-page" ${data.items.length < 50 ? 'disabled' : ''}>下一页</button></div></section>`;
+  root.innerHTML = `<div class="page-heading"><div><a class="back-link" href="#history">← 任务记录</a><h1>任务 #${job.id} <span id="task-badge"></span></h1><p class="muted task-scope">${job.request.mode === 'apply' ? '回写' : '预览'} · ${dateTime(job.created_at)} · ${job.request.all ? '全部演员' : e(job.request.names.join('、'))}</p></div><div class="action-group"><a class="secondary" href="/api/jobs/${id}/export">导出 JSONL ↓</a><button class="secondary" id="task-action"></button></div></div>
+  <section class="panel progress-panel" id="task-progress"></section>
+  <section class="panel results"><div class="panel-heading"><h2>演员结果</h2><span class="muted">点击姓名查看资料与图片</span></div><form id="result-filters" class="filter-toolbar result-filters" role="search" aria-label="筛选演员结果"><label class="search-field">演员姓名<input name="q" type="search" maxlength="200" placeholder="搜索本任务的演员" autocomplete="off"></label><label>处理状态<select name="status"><option value="">全部状态</option><option value="issues">失败 / 部分完成 / 未匹配</option>${['preview', 'updated', 'unchanged', 'not_found', 'partial', 'error', 'cancelled'].map(status => `<option value="${status}">${states[status]}</option>`).join('')}</select></label><div class="filter-actions"><button class="primary" type="submit">筛选</button><button class="secondary" id="clear-results" type="button">清空</button></div></form><p class="list-error" id="results-error" role="alert" hidden></p><div id="results-table"></div><div id="results-pagination" class="pagination"></div></section>`;
+  const updateProgress = () => {
+    const statuses = job.summary?.statuses || {};
+    const percentage = job.total ? Math.min(100, Math.round(job.done / job.total * 100)) : 0;
+    root.querySelector('#task-badge').innerHTML = badge(job.state);
+    root.querySelector('#task-progress').innerHTML = `<div class="progress-head"><strong>${active(job) ? '任务正在进行' : '本次处理结果'}</strong><span>${job.done} / ${job.total || '—'} 位</span></div><div class="progress-track"><div style="width:${percentage}%"></div></div><p class="muted">${e(job.message || (active(job) ? '正在准备任务' : '任务已结束'))}</p><div class="metrics"><span>已更新 <b>${statuses.updated || 0}</b></span><span>已预览 <b>${statuses.preview || 0}</b></span><span>未匹配 <b>${statuses.not_found || 0}</b></span><span>失败 / 部分完成 <b>${(statuses.error || 0) + (statuses.partial || 0)}</b></span><span>源站请求 <b>${job.summary?.external_requests ?? '—'}</b></span><span>耗时 <b>${job.summary?.seconds !== undefined ? `${job.summary.seconds}s` : '—'}</b></span></div>`;
+    const button = root.querySelector('#task-action');
+    button.textContent = job.state === 'cancelling' ? '正在停止' : active(job) ? '停止任务' : '重试未完成';
+    button.disabled = job.state === 'cancelling';
+  };
+  updateProgress();
   let rows = data.items;
   const renderRows = () => {
-    root.querySelector('#results-table').innerHTML = rows.length ? `<div class="table-wrap"><table><thead><tr><th>演员</th><th>来源 / 写真版本</th><th>状态</th><th>主图 / 背景</th><th>耗时</th><th></th></tr></thead><tbody>${rows.map(row => `<tr><td><button class="actor-link" data-result="${row.result_id}">${e(row.name)}</button>${row.profile?.birthday ? `<small>${e(row.profile.birthday)}</small>` : ''}</td><td>${e(row.artwork?.primary?.source || row.profile?.source || '—')}<small>${e(row.artwork?.primary?.model_id || '')}</small></td><td>${badge(row.status)}</td><td><span class="tiny-flag ${row.image_written ? 'good' : ''}">${row.image_written ? '已写主图' : row.primary_preview ? '主图已缓存' : '—'}</span> <span class="tiny-flag ${row.backdrop_written ? 'good' : ''}">${row.backdrop_written ? '已写背景' : row.backdrop_preview ? '背景已缓存' : '—'}</span></td><td class="tabular">${row.seconds}s${row.cached ? '<small>缓存命中</small>' : ''}</td><td><button class="row-arrow" data-result="${row.result_id}" aria-label="查看演员">↗</button></td></tr>`).join('')}</tbody></table></div>` : `<div class="empty compact"><h3>正在等待演员结果</h3><p>任务会逐位保存结果。</p></div>`;
+    root.querySelector('#results-table').innerHTML = rows.length ? `<div class="table-wrap"><table><thead><tr><th>演员</th><th>来源 / 写真版本</th><th>状态</th><th>主图 / 背景</th><th>耗时</th><th><span class="sr-only">操作</span></th></tr></thead><tbody>${rows.map(row => `<tr><td><button class="actor-link" data-result="${row.result_id}">${e(row.name)}</button></td><td>${e(row.artwork?.primary?.source || row.profile?.source || '—')}<small>${e(row.artwork?.primary?.model_id || '')}</small></td><td>${badge(row.status)}</td><td><span class="tiny-flag ${row.image_written ? 'good' : ''}">${row.image_written ? '已写主图' : row.primary_preview ? '主图已缓存' : '—'}</span> <span class="tiny-flag ${row.backdrop_written ? 'good' : ''}">${row.backdrop_written ? '已写背景' : row.backdrop_preview ? '背景已缓存' : '—'}</span></td><td class="tabular">${row.seconds}s${row.cached ? '<span class="cache-label">缓存</span>' : ''}</td><td><button class="row-arrow" data-result="${row.result_id}" aria-label="查看演员">→</button></td></tr>`).join('')}</tbody></table></div>` : emptyState(filters.q || filters.status ? '没有符合条件的演员结果' : active(job) ? '正在等待演员结果' : '本任务没有演员结果', filters.q || filters.status ? '调整条件或清空筛选。' : '');
     root.querySelectorAll('[data-result]').forEach(button => { button.onclick = () => showResult(rows.find(row => row.result_id === Number(button.dataset.result))); });
   };
   renderRows();
-  const pagination = () => {
-    root.querySelector('#previous-page').disabled = offset === 0;
-    root.querySelector('#next-page').disabled = rows.length < 50;
-    root.querySelector('#page-number').textContent = `第 ${offset / 50 + 1} 页`;
+  let total = data.total;
+  const renderPagination = () => {
+    root.querySelector('#results-pagination').innerHTML = pagination(filters.offset, 50, total);
+    root.querySelectorAll('[data-page]').forEach(button => {
+      button.onclick = () => { filters.offset += button.dataset.page === 'next' ? 50 : -50; loadPage().catch(error => toast(error.message, true)); };
+    });
   };
-  pagination();
+  renderPagination();
+  const form = root.querySelector('#result-filters');
+  form.elements.q.value = filters.q;
+  form.elements.status.value = filters.status;
+  let request = 0;
   let loading = false;
-  const loadPage = async delta => {
-    if (loading) return;
+  const loadPage = async () => {
+    const ticket = ++request;
     loading = true;
-    const nextOffset = Math.max(0, offset + delta);
+    root.querySelectorAll('[data-page]').forEach(button => { button.disabled = true; });
+    root.querySelector('#results-table').setAttribute('aria-busy', 'true');
     try {
-      const data = await api(`/jobs/${id}/results?offset=${nextOffset}`);
-      if (!current()) return;
-      offset = nextOffset;
-      pageOffsets.set(id, offset);
+      const data = await api(`/jobs/${id}/results?${resultQuery()}`);
+      if (!current() || ticket !== request) return;
+      if (filters.offset && filters.offset >= data.total) {
+        filters.offset = Math.max(0, Math.ceil(data.total / 50) - 1) * 50;
+        return await loadPage();
+      }
       rows = data.items;
+      total = data.total;
       renderRows();
-      pagination();
-    } finally { loading = false; }
+      renderPagination();
+      root.querySelector('#results-error').hidden = true;
+    } catch (error) {
+      if (current() && ticket === request) {
+        const message = root.querySelector('#results-error');
+        message.textContent = `加载失败：${error.message}。请重新筛选重试。`;
+        message.hidden = false;
+      }
+    } finally {
+      if (current() && ticket === request) {
+        loading = false;
+        root.querySelector('#results-table').setAttribute('aria-busy', 'false');
+      }
+    }
   };
-  root.querySelector('#previous-page').onclick = () => loadPage(-50).catch(error => toast(error.message, true));
-  root.querySelector('#next-page').onclick = () => loadPage(50).catch(error => toast(error.message, true));
+  let searchTimer;
+  form.onsubmit = event => {
+    event.preventDefault();
+    clearTimeout(searchTimer);
+    filters.q = form.elements.q.value.trim();
+    filters.status = form.elements.status.value;
+    filters.offset = 0;
+    loadPage().catch(error => toast(error.message, true));
+  };
+  form.elements.q.oninput = () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => { if (current()) form.requestSubmit(); }, 300);
+  };
+  form.elements.status.onchange = () => form.requestSubmit();
+  root.querySelector('#clear-results').onclick = () => { form.reset(); form.requestSubmit(); };
   root.querySelector('#task-action').onclick = async event => {
-    event.currentTarget.disabled = true;
+    const button = event.currentTarget;
+    button.disabled = true;
     try {
-      if (active(job)) { await api(`/jobs/${id}/cancel`, { method: 'POST' }); toast('已请求停止'); }
+      if (active(job)) { await api(`/jobs/${id}/cancel`, { method: 'POST' }); job = await api(`/jobs/${id}`); if (current()) updateProgress(); toast('已请求停止'); }
       else { const retry = await api(`/jobs/${id}/retry`, { method: 'POST' }); location.hash = `task/${retry.id}`; }
-    } catch (error) { toast(error.message, true); event.currentTarget.disabled = false; }
+    } catch (error) { toast(error.message, true); if (current()) button.disabled = false; }
   };
-  return job;
+  return async () => {
+    if (!active(job)) return;
+    const fresh = await api(`/jobs/${id}`);
+    if (!current()) return;
+    job = fresh;
+    updateProgress();
+    if (!loading) await loadPage();
+  };
 }
 
 function showResult(row) {

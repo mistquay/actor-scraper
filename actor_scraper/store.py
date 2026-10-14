@@ -84,9 +84,38 @@ class Store:
         return self._job(row) if row else None
 
     def list_jobs(self, limit=50):
+        return self.query_jobs(limit=limit)["items"]
+
+    def query_jobs(self, *, offset=0, limit=50, q="", state="", mode="", created_after=None, created_before=None, sort="newest"):
+        clauses, params = [], []
+        if q.strip():
+            clauses.append("""(CAST(id AS TEXT)=? OR EXISTS (
+                SELECT 1 FROM json_each(request, '$.names') WHERE instr(lower(value), lower(?))>0
+            ) OR EXISTS (
+                SELECT 1 FROM json_each(scope) WHERE instr(lower(json_extract(value, '$.Name')), lower(?))>0
+            ))""")
+            params.extend([q.strip().lstrip("#"), q.strip(), q.strip()])
+        if state == "active":
+            clauses.append("state IN ('queued','running','cancelling')")
+        elif state:
+            clauses.append("state=?")
+            params.append(state)
+        if mode:
+            clauses.append("json_extract(request, '$.mode')=?")
+            params.append(mode)
+        for boundary, operator in [(created_after, ">="), (created_before, "<")]:
+            if boundary is not None:
+                clauses.append(f"created_at {operator} ?")
+                params.append(boundary)
+        where = " WHERE " + " AND ".join(clauses) if clauses else ""
+        order = "ASC" if sort == "oldest" else "DESC"
         with self.connect() as db:
-            rows = db.execute("SELECT id,state,request,options,summary,total,done,message,created_at,finished_at FROM jobs ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
-        return [self._job(row) for row in rows]
+            total = db.execute("SELECT COUNT(*) FROM jobs" + where, params).fetchone()[0]
+            rows = db.execute(
+                "SELECT id,state,request,options,summary,total,done,message,created_at,finished_at FROM jobs"
+                + where + f" ORDER BY created_at {order}, id {order} LIMIT ? OFFSET ?", (*params, limit, offset),
+            ).fetchall()
+        return {"items": [self._job(row) for row in rows], "total": total}
 
     @staticmethod
     def _job(row):
@@ -97,9 +126,23 @@ class Store:
         return job
 
     def results(self, job_id, offset=0, limit=50):
+        return self.query_results(job_id, offset=offset, limit=limit)["items"]
+
+    def query_results(self, job_id, *, offset=0, limit=50, q="", status=""):
+        clauses, params = ["job_id=?"], [job_id]
+        if q.strip():
+            clauses.append("instr(lower(name), lower(?))>0")
+            params.append(q.strip())
+        if status == "issues":
+            clauses.append("status IN ('error','partial','not_found')")
+        elif status:
+            clauses.append("status=?")
+            params.append(status)
+        where = " WHERE " + " AND ".join(clauses)
         with self.connect() as db:
-            rows = db.execute("SELECT id,data FROM results WHERE job_id=? ORDER BY id LIMIT ? OFFSET ?", (job_id, limit, offset)).fetchall()
-        return [{"result_id": row["id"], **json.loads(row["data"])} for row in rows]
+            total = db.execute("SELECT COUNT(*) FROM results" + where, params).fetchone()[0]
+            rows = db.execute("SELECT id,data FROM results" + where + " ORDER BY id LIMIT ? OFFSET ?", (*params, limit, offset)).fetchall()
+        return {"items": [{"result_id": row["id"], **json.loads(row["data"])} for row in rows], "total": total}
 
     def result(self, job_id, result_id):
         with self.connect() as db:

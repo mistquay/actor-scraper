@@ -1,6 +1,8 @@
-import { api, toast, active } from './api.js';
+import { api, toast } from './api.js';
 import { renderSettings } from './settings.js';
-import { renderDashboard, renderHistory, renderTask } from './tasks.js';
+import { renderDashboard } from './dashboard.js';
+import { renderHistory } from './history.js';
+import { renderTask } from './tasks.js';
 
 let settings;
 let pollTimer;
@@ -32,33 +34,20 @@ async function route() {
   document.querySelector('#breadcrumb').textContent = { dashboard: '工作台', history: '任务记录', settings: '连接与配置' }[nav] || '工作台';
   content.innerHTML = '<div class="loading"><span></span>正在加载…</div>';
   try {
+    let refresh;
     if (page === 'settings') await renderSettings(content, connection, current);
-    else if (page === 'history') await renderHistory(content, current);
+    else if (page === 'history') refresh = await renderHistory(content, current);
     else if (/^task\/\d+$/.test(page)) {
       const id = page.split('/')[1];
-      let job = await renderTask(content, id, current);
-      let busy = false;
-      if (current() && job && active(job)) pollTimer = setInterval(async () => {
-        if (busy || ticket !== navigating) return;
-        busy = true;
-        try {
-          const fresh = await api(`/jobs/${id}`);
-          if (ticket !== navigating) return;
-          if (fresh.done !== job.done || fresh.state !== job.state || fresh.message !== job.message) job = await renderTask(content, id, current);
-          if (current() && job && !active(job)) clearInterval(pollTimer);
-        } catch (error) { toast(error.message, true); }
-        finally { busy = false; }
-      }, 2000);
-    } else {
-      const refresh = await renderDashboard(content, settings, current);
-      let busy = false;
-      if (current() && refresh) pollTimer = setInterval(async () => {
-        if (busy || !current()) return;
-        busy = true;
-        try { await refresh(); } catch (error) { if (current()) toast(error.message, true); }
-        finally { busy = false; }
-      }, 3000);
-    }
+      refresh = await renderTask(content, id, current);
+    } else refresh = await renderDashboard(content, settings, current);
+    let busy = false;
+    if (current() && refresh) pollTimer = setInterval(async () => {
+      if (busy || !current()) return;
+      busy = true;
+      try { await refresh(); } catch (error) { if (current()) toast(error.message, true); }
+      finally { busy = false; }
+    }, 3000);
   } catch (error) { toast(error.message, true); }
 }
 
