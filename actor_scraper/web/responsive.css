@@ -1,0 +1,152 @@
+@media(min-width:1600px) {
+  #content {
+  padding:44px 55px}
+.topbar {
+  padding:0 55px}
+}
+@media(max-width:1150px) {
+  #content {
+  padding:28px}
+.topbar {
+  padding:0 28px}
+.sidebar {
+  width:196px}
+main {
+  margin-left:196px}
+.stats-grid {
+  gap:10px}
+.stat {
+  padding:18px}
+.stat strong {
+  font-size:24px}
+.dashboard-grid {
+  grid-template-columns:1.4fr 1fr;
+  gap:16px}
+.source-card {
+  padding:24px 20px}
+.source-card h2 {
+  font-size:23px}
+.panel {
+  padding:22px}
+.form-grid.three {
+  grid-template-columns:1fr 1fr}
+.login-art {
+  padding:50px}
+}
+@media(max-width:860px) {
+  .dashboard-grid {
+  grid-template-columns:1fr}
+.source-card {
+  display:none}
+.stats-grid {
+  grid-template-columns:1fr 1fr}
+.sidebar {
+  width:170px;
+  padding:28px 13px}
+.brand {
+  font-size:13px;
+  gap:9px}
+.brand small {
+  font-size:8px}
+.brand-mark {
+  width:31px;
+  height:31px;
+  font-size:27px}
+main {
+  margin-left:170px}
+.page-heading {
+  align-items:flex-start}
+.page-heading h1 {
+  font-size:27px}
+.topbar-note {
+  display:none}
+.login-screen {
+  grid-template-columns:1fr}
+.login-art {
+  display:none}
+.picture-pair {
+  grid-template-columns:140px 1fr}
+}
+@media(max-width:600px) {
+  .sidebar {
+  position:static;
+  width:100%;
+  padding:16px 18px;
+  border-right:none;
+  border-bottom:1px solid var(--line)}
+.app-shell {
+  display:block}
+.brand {
+  margin:0 0 15px}
+.sidebar nav {
+  display:flex;
+  gap:6px}
+.sidebar nav a {
+  padding:8px 12px;
+  font-size:11px}
+.sidebar nav a span {
+  font-size:15px}
+.sidebar-foot {
+  display:block;
+  margin-top:10px;
+  border-top:none;
+  padding:0 12px}
+.sidebar-foot .connection,.sidebar-foot p,.sidebar-foot>small {
+  display:none}
+main {
+  margin:0}
+.topbar {
+  height:46px;
+  padding:0 20px}
+#content {
+  padding:24px 18px}
+.page-heading {
+  gap:14px;
+  margin-bottom:22px;
+  flex-wrap:wrap}
+.page-heading p.muted {
+  font-size:11px}
+.page-heading h1 {
+  font-size:26px}
+.form-grid,.form-grid.three {
+  grid-template-columns:1fr}
+.check-grid {
+  grid-template-columns:1fr}
+.stats-grid {
+  gap:10px}
+.stat {
+  padding:17px}
+.stat strong {
+  font-size:24px}
+.stat small {
+  font-size:9px}
+.panel {
+  padding:20px}
+.action-group {
+  gap:8px}
+.action-group .secondary {
+  font-size:11px;
+  padding:10px 13px}
+.panel-heading {
+  align-items:flex-start;
+  flex-wrap:wrap}
+.form-actions {
+  flex-wrap:wrap}
+.settings-footer {
+  align-items:flex-start;
+  gap:20px;
+  flex-direction:column}
+.settings-footer p {
+  max-width:100%}
+.metrics {
+  gap:13px}
+.picture-pair {
+  grid-template-columns:1fr 1.5fr;
+  gap:12px}
+.portrait-preview,.backdrop-preview {
+  min-height:170px}
+dialog {
+  padding:20px}
+.login-card {
+  padding:30px 20px}
+}

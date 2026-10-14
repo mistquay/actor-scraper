@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Actor Scraper · 演员资料管理</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <script type="module" src="/assets/app.js"></script>
+</head>
+<body>
+  <section id="login" class="login-screen" hidden>
+    <div class="login-card"><div class="brand-symbol">a<span>·</span></div><p class="eyebrow">ACTOR SCRAPER</p><h1>让演员资料<br>井然有序。</h1><p class="muted">管理资料、头像与背景，让每次补全都有记录。</p>
+      <form id="login-form"><label>管理密码<input id="password" type="password" autocomplete="current-password" required autofocus></label><button class="primary" type="submit">进入管理台 <span>→</span></button><p id="login-error" class="error-text" role="alert"></p></form>
+      <small>首次启动会生成管理密码，查看部署说明或设置 ACTOR_ADMIN_PASSWORD。</small>
+    </div>
+    <div class="login-art"><div class="art-ring"></div><div class="art-caption"><span>ONE PLACE, EVERY DETAIL.</span><h2>好资料，<br>好图像。</h2><p>GRAPHIS · Gfriends · AV-LEAGUE</p></div></div>
+  </section>
+  <div id="app" class="app-shell" hidden>
+    <aside class="sidebar"><a class="brand" href="#dashboard"><span class="brand-mark">a<span>·</span></span><span>Actor Scraper<small>演员资料管理</small></span></a>
+      <nav><a href="#dashboard" data-nav="dashboard"><span>◈</span>工作台</a><a href="#history" data-nav="history"><span>◷</span>任务记录</a><a href="#settings" data-nav="settings"><span>⚙</span>连接与配置</a></nav>
+      <div class="sidebar-foot"><div class="connection"><i></i><span id="connection-state">尚未配置 FYMS</span></div><p>结果自动保存<br>图片缓存重复利用</p><button id="logout" class="link-button">退出登录 ↗</button><small>v0.3.0</small></div>
+    </aside>
+    <main><header class="topbar"><span id="breadcrumb">工作台</span><span class="topbar-note">FYMS / Emby compatible</span></header><div id="content"></div></main>
+  </div>
+  <div id="toast" class="toast" role="status" hidden></div>
+  <dialog id="result-dialog"><div class="dialog-head"><h2 id="result-title">演员资料</h2><button id="close-result" class="icon-button" aria-label="关闭">×</button></div><div id="result-content"></div></dialog>
+</body>
+</html>

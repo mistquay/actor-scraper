@@ -1,0 +1,14 @@
+services:
+  actor-scraper:
+    image: ghcr.io/mistquay/actor-scraper:latest
+    container_name: actor-scraper
+    restart: unless-stopped
+    ports:
+      - "8891:8891"
+    environment:
+      TZ: Asia/Shanghai
+      ACTOR_DATA_DIR: /data
+      ACTOR_ADMIN_PASSWORD: ${ACTOR_ADMIN_PASSWORD:-}
+    volumes:
+      - ./data:/data
+    stop_grace_period: 20s

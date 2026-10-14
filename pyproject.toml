@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "actor-scraper"
+version = "0.3.0"
+description = "演员资料、GRAPHIS 主图和背景刮削管理工具，兼容 FYMS/Emby"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115,<1", "uvicorn>=0.30,<1", "httpx>=0.27,<1",
+  "selectolax>=0.3.27,<0.5", "Pillow>=10,<13", "opencc>=1.1.9,<2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.11"]
+
+[project.scripts]
+actor-scraper = "actor_scraper.cli:main"
+actor-scraper-web = "actor_scraper.server:main"
+
+[tool.setuptools.packages.find]
+include = ["actor_scraper*"]
+
+[tool.setuptools.package-data]
+actor_scraper = ["web/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 140
+
+[tool.ruff.lint]
+select = ["F"]

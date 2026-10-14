@@ -1,0 +1,22 @@
+.settings-grid {
+  display:grid;
+  gap:22px}
+.form-actions {
+  display:flex;
+  align-items:center;
+  gap:14px;
+  margin-top:23px}
+.form-actions .secondary {
+  font-size:11px}
+.settings-footer {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:4px 0}
+.settings-footer p {
+  font-size:11px;
+  color:#8fa193;
+  max-width:70%;
+  line-height:1.8}
+.success-text {
+  color:#34845c}

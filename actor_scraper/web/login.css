@@ -1,0 +1,80 @@
+.login-screen {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  min-height:100vh;
+  background:#f8faf5}
+.login-card {
+  max-width:360px;
+  width:100%;
+  align-self:center;
+  justify-self:center;
+  padding:40px 15px}
+.brand-symbol {
+  width:47px;
+  height:47px;
+  font-size:38px;
+  margin-bottom:32px}
+.login-card h1 {
+  font-size:37px;
+  line-height:1.4;
+  letter-spacing:-1.5px}
+.login-card>p.muted {
+  font-size:12px;
+  margin-top:18px;
+  line-height:1.9}
+.login-card form {
+  margin-top:35px}
+.login-card button {
+  width:100%;
+  margin-top:24px;
+  justify-content:space-between}
+.login-card>small {
+  color:#a0afa1;
+  font-size:10px;
+  line-height:1.8;
+  margin-top:13px}
+.login-art {
+  background:#d2e1d1;
+  position:relative;
+  overflow:hidden;
+  display:flex;
+  align-items:flex-end;
+  padding:70px}
+.art-ring {
+  position:absolute;
+  top:14%;
+  left:-5%;
+  width:110%;
+  height:70%;
+  border:1px solid #aac1ae;
+  border-radius:50%;
+  transform:rotate(-35deg)}
+.art-ring:before {
+  content:"";
+  position:absolute;
+  inset:40px;
+  border:1px solid #afc6b1;
+  border-radius:50%}
+.art-ring:after {
+  content:"";
+  position:absolute;
+  inset:90px;
+  border:1px solid #b8ceba;
+  border-radius:50%}
+.art-caption {
+  position:relative}
+.art-caption>span {
+  font-size:10px;
+  letter-spacing:3px;
+  color:#78927c}
+.art-caption h2 {
+  font-size:66px;
+  line-height:1.25;
+  font-weight:400;
+  letter-spacing:-3px;
+  color:#53775c;
+  margin:20px 0}
+.art-caption p {
+  font-size:10px;
+  color:#88a08b;
+  letter-spacing:2px}

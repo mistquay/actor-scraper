@@ -1,0 +1,135 @@
+.app-shell {
+  display:flex;
+  min-height:100vh}
+.sidebar {
+  width:226px;
+  background:#fff;
+  border-right:1px solid var(--line);
+  padding:34px 20px 22px;
+  display:flex;
+  flex-direction:column;
+  position:fixed;
+  inset:0 auto 0 0}
+.brand {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:44px;
+  padding-left:6px;
+  font-size:15px;
+  font-weight:700;
+  letter-spacing:-.3px}
+.brand small {
+  font-size:10px;
+  color:#91a096;
+  letter-spacing:2px;
+  font-weight:400;
+  margin-top:5px}
+.brand-mark,.brand-symbol {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:var(--green);
+  color:#fff;
+  width:38px;
+  height:38px;
+  border-radius:12px;
+  font-size:31px;
+  font-weight:600;
+  letter-spacing:-4px}
+.brand-mark span,.brand-symbol span {
+  color:#b8d9bb}
+.sidebar nav {
+  display:grid;
+  gap:8px}
+.sidebar nav a {
+  padding:12px 15px;
+  border-radius:9px;
+  color:#7a8d82;
+  font-size:13px;
+  display:flex;
+  gap:13px;
+  align-items:center}
+.sidebar nav a span {
+  font-size:18px;
+  width:18px;
+  text-align:center}
+.sidebar nav a.active {
+  background:var(--mint);
+  color:var(--green);
+  font-weight:650}
+.sidebar nav a:hover {
+  background:#f4f7f4}
+.sidebar-foot {
+  margin-top:auto;
+  border-top:1px solid var(--line);
+  padding:22px 8px 0}
+.connection {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:#6c8176;
+  font-size:11px}
+.connection i {
+  width:6px;
+  height:6px;
+  background:#c3c9c3;
+  border-radius:100%}
+.connection.configured i {
+  background:#3a9f79}
+.sidebar-foot p {
+  font-size:11px;
+  color:#9aaba0;
+  line-height:1.9;
+  margin:14px 0}
+.sidebar-foot button {
+  padding:0;
+  font-size:11px}
+.sidebar-foot>small {
+  font-size:10px;
+  margin-top:20px;
+  color:#b3bfb6}
+main {
+  margin-left:226px;
+  flex:1;
+  min-width:0}
+.topbar {
+  height:70px;
+  border-bottom:1px solid var(--line);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 42px;
+  background:#f8faf6;
+  font-size:12px;
+  color:#7b8d83}
+.topbar-note {
+  font-size:10px;
+  letter-spacing:1px;
+  color:#a2afa6}
+#content {
+  max-width:1420px;
+  margin:auto;
+  padding:40px 42px}
+.page-heading {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:25px;
+  margin-bottom:31px}
+.page-heading p.muted {
+  margin-top:12px;
+  font-size:12px}
+.page-heading h1 .badge {
+  vertical-align:middle;
+  margin-left:8px;
+  font-size:11px;
+  letter-spacing:0}
+.action-group {
+  display:flex;
+  gap:10px}
+.panel {
+  background:var(--paper);
+  border:1px solid var(--line);
+  border-radius:13px;
+  padding:26px}

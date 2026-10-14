@@ -1,0 +1,116 @@
+name: 测试并发布镜像
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: 安装依赖
+        run: pip install -e ".[dev]"
+      - name: Python 检查与测试
+        run: |
+          ruff check .
+          pytest -q
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: 检查前端模块语法
+        run: |
+          for file in actor_scraper/web/*.js; do
+            node --input-type=module --check < "$file"
+          done
+
+  image:
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+      - name: 镜像地址
+        id: image
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+      - uses: docker/metadata-action@v5
+        id: metadata
+        with:
+          images: ${{ steps.image.outputs.name }}
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=ref,event=tag
+            type=sha,prefix=sha-
+          labels: |
+            org.opencontainers.image.title=Actor Scraper
+            org.opencontainers.image.description=FYMS/Emby 演员资料、头像与背景管理
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        id: build
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          build-args: VERSION=${{ github.ref_name }}-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: 验证已发布容器
+        env:
+          SMOKE_IMAGE: ${{ steps.image.outputs.name }}@${{ steps.build.outputs.digest }}
+        run: |
+          docker run -d --name actor-scraper-smoke -p 127.0.0.1:8891:8891 \
+            -e ACTOR_ADMIN_PASSWORD=ci-smoke-password "$SMOKE_IMAGE"
+          python - <<'PY'
+          import http.cookiejar
+          import json
+          import time
+          import urllib.error
+          import urllib.request
+          base = 'http://127.0.0.1:8891'
+          for attempt in range(30):
+              try:
+                  assert json.load(urllib.request.urlopen(base + '/health', timeout=2))['status'] == 'ok'
+                  break
+              except (OSError, AssertionError):
+                  time.sleep(1)
+          else:
+              raise RuntimeError('Container did not become healthy')
+          opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+          request = urllib.request.Request(base + '/api/login', data=json.dumps({'password': 'ci-smoke-password'}).encode(), headers={'Content-Type': 'application/json'})
+          assert json.load(opener.open(request))['ok']
+          settings = json.load(opener.open(base + '/api/settings'))
+          assert 'api_key' not in settings and settings['avatar_source'] == 'auto'
+          assert b'id="login-form"' in opener.open(base + '/').read()
+          assert b'renderTask' in opener.open(base + '/assets/tasks.js').read()
+          PY
+          docker exec actor-scraper-smoke actor-scraper --help
+      - name: 容器诊断与清理
+        if: always()
+        run: |
+          docker logs actor-scraper-smoke || true
+          docker rm -f actor-scraper-smoke || true
